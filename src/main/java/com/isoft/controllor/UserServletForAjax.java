@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.Map;
 
 @WebServlet(name = "UserServletForAjax",urlPatterns = "/userServletForAjax")
 public class UserServletForAjax extends HttpServlet {
@@ -22,21 +23,19 @@ public class UserServletForAjax extends HttpServlet {
         User user=new User();
         user.setUname(uname);
         user.setRole(role);
-        boolean b=userService.addUserInfo(user);
+//        boolean b=userService.addUserInfo(useru);
         PrintWriter out = response.getWriter();
-        out.print(b);
+//        out.print(b);
         out.close();
-//        System.out.println("doPost");
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         UserService userService=new UserService();
-        List<User> allUser = userService.findAllUser();
+        List<Map<String, Object>> allUser = userService.findAllUser();
         response.setContentType("text/html;charset=utf-8");
         PrintWriter out = response.getWriter();
         String jsonStr= JSON.toJSONString(allUser);//将对象转化为JSON字符串
         out.print(jsonStr);
         out.close();
-//        System.out.println("doGet");
     }
 }

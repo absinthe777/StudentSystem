@@ -9,6 +9,7 @@
     <script type="text/javascript" src="other/node_modules/jquery/dist/jquery.js"></script>
     <script type="text/javascript" src="other/node_modules/bootstrap3/dist/js/bootstrap.js"></script>
     <script type="text/javascript" src="other/node_modules/layui-src/dist/layui.all.js"></script>
+    <script type="text/javascript" src="other/node_modules/bootbox/bootbox.js"></script>
     <script>
         function searchUserByRole() {
             $.get("searchUserServlet",{"role":$("#searchByRole").val()},function (data) {
@@ -25,67 +26,116 @@
                 $("#alluser").html(str);
             });
         }
-        function addUserInfo() {
-            $.post("userServletForAjax",{"uname":$("#uname").val(),"role":$("#role").val()},function (data) {
-                if (data=="true"){
-                    layer.msg("成功");
-                    // alert("add success");
-                    $("#addModal").modal("hide");
-                    findAllUser();
-                }else {
-
-                }
-            });
+        function optionUserInfo() {
+            var btn_value= $("#btnModal").html();
+            if(btn_value=="添加"){
+                $.post("addUserInfo.do",{"uname":$("#uname").val(),"runame":$("#runame").val(),"role":$("#role").val()},function (data) {
+                    if (data=="true"){
+                        layer.msg("成功");
+                         // alert("add success");
+                        $("#addModal").modal("hide");
+                        findAllUser();
+                    }else {
+                        layer.msg("添加失败");
+                    }
+                });
+            }else {
+                $.post("User",{"uname":$("#uname").val(),"runame":$("#runame").val(),"role":$("#role").val()},function (data) {
+                    if (data=="true"){
+                        layer.msg("成功");
+                        $("#addModal").modal("hide");
+                        findAllUser();
+                    }else {
+                        layer.msg("添加失败");
+                    }
+                });
+            }
         }
-        function showAddModal() {
+        function showUserInfoModal(id,data) {
+            if (id==0)
+            {
+                $("#myModalLabel").html("更新信息");
+                $("#btnModal").html("更新");
+                $("#uname").val(data.uname);
+                $("#runame").val(data.runame);
+                $("#role").val(data.role);
+            }
+            else
+            {
+                $("#myModalLabel").html("添加信息");
+                $("#btnModal").html("添加");
+                $("#uname").val("");
+                $("#runame").val("");
+                $("#role").val("");
+            }
             $("#addModal").modal("show");
         }
         function deleteUserById(id) {
             console.info(id);
-            $.ajax({
-                url:"deleteUserByIdServlet",
-                data:{"id":id},
-                success:function (result) {
-                    if (result == "true") {
-                        findAllUser();
-                    }else {
-                        alert("删除失败!");
+            bootbox.confirm({
+                message: "确定删除记录?",
+                buttons: {
+                    cancel: {
+                        label: '取消',
+                        className: 'btn-danger'
+                    },
+                    confirm: {
+                        label: '确定',
+                        className: 'btn-success'
                     }
                 },
-                error:function () {
-                    alert("访问服务器失败!");
+                callback: function (result) {
+                    if(result==true){
+                        $.ajax({
+                            url:"deleteUserById.do",
+                            data:{"id":id},
+                            success:function (result) {
+                                if (result == "true") {
+                                    layer.msg("删除成功");
+                                    findAllUser();
+                                }else {
+                                    layer.msg("删除失败!");
+                                }
+                            },
+                            error:function () {
+                                layer.msg("访问服务器失败!");
+                            }
+                        });
+                    }
                 }
+
             });
         }
+
         function findAllUser() {
             $.ajax({
-                url:"userServletForAjax",
-                method:"get",
+                url:"findAllUser.do",
                 success:function (result) {
                     var obj= JSON.parse(result);
                     var str="";
                     $.each(obj,function (index,row,ee) {
-                        // alert(row.uname+"-"+row.upwd);
-                        str+="<tr align='center'><td><input type='checkbox' value='+row.id'></td><td>"+row.uname+"</td><td>"
-                            +row.lastLoginTime+"</td><td>"+row.role+"</td><td>"+
-                            "<a href='javascript:deleteUserById(\""+row.id+"\")' title='删除' onclick='return confirm(\"是否真的删除?\")'><span class='glyphicon glyphicon-remove'></span></a>"+
-                            "<a href='javascript:showUpdateModal()'><span class='glyphicon glyphicon-refresh'></span> </a></td></tr>"
+                        str+="<tr align='center'><td><input type='checkbox' value='"+row.id+"'></td><td>"+row.uname+"</td><td>"+row.runame+"</td><td>"
+                            +new Date(row.lastLoginTime).toLocaleString()+"</td><td>"+row.role+"</td><td>"+
+                            "<a href='javascript:deleteUserById(\""+row.id+"\")' title='删除'><span class='glyphicon glyphicon-remove'></span></a>"+
+                            "<a href='javascript:showUserInfoModal(0,"+JSON.stringify(row)+")'><span class='glyphicon glyphicon-refresh'></span> </a></td></tr>"
 
                     });
                     $("#alluser").html(str);
                 },
                 error:function () {
-                    alert("失败");
+                    alert("服务器请求失败");
                 }
             });
         }
-        findAllUser();
+        $(function () {
+            findAllUser();
+        })
     </script>
 </head>
 <body>
 <div class="well">
     <div class="form-inline">
-        <a href="javascript:showAddModal()" class="btn btn-danger"><span class="glyphicon glyphicon-zoom-in"></span> 添加</a>
+        <a href="javascript:showUserInfoModal(1)" class="btn btn-danger"><span class="glyphicon glyphicon-zoom-in"></span> 添加</a>
         <select id="searchByRole" class="form-control" onchange="javascript:searchUserByRole()">
             <option value="">全部</option>
             <option value="admin">管理员</option>
@@ -97,14 +147,15 @@
 <table class="table table-hover table-bordered table-striped">
     <tr align="center">
         <td>全选</td>
-        <td>uname</td>
-        <td>lastLoginTime</td>
-        <td>Role</td>
+        <td>用户名</td>
+        <td>真实姓名</td>
+        <td>最后登录时间</td>
+        <td>角色</td>
         <td>操作</td>
     </tr>
     <tbody id="alluser"></tbody>
 </table>
-<!-- 模态框（Modal） -->
+<!-- 模态框（Modal）-->
 <div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -119,17 +170,23 @@
                 </div>
                 <br>
                 <div class="input-group">
+                    <input id="runame" type="text" class="form-control" placeholder="请输入真实姓名">
+                    <span class="glyphicon glyphicon-user input-group-addon"></span>
+                </div>
+                <br>
+                <div class="input-group">
                     <select id="role" name="role" class="form-control">
                         <option value="">请选择</option>
-                        <option value="老师">老师</option>
-                        <option value="学生">学生</option>
+                        <option value="admin">管理员</option>
+                        <option value="teacher">老师</option>
+                        <option value="student">学生</option>
                     </select>
                     <span class="glyphicon glyphicon-send input-group-addon"></span>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
-                <button type="button" class="btn btn-primary" onclick="addUserInfo()">添加</button>
+                <button id="btnModal" type="button" class="btn btn-primary" onclick="optionUserInfo()">添加</button>
             </div>
         </div><!-- /.modal-content -->
     </div><!-- /.modal -->

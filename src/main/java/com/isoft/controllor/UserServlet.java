@@ -12,6 +12,7 @@ import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.Map;
 
 @WebServlet(name = "UserServlet",urlPatterns = "/userServlet")
 public class UserServlet extends HttpServlet {
@@ -30,7 +31,7 @@ public class UserServlet extends HttpServlet {
 
 
         if (userService.login(user)){
-            List<User> allUser=userService.findAllUser();
+            List<Map<String, Object>> allUser=userService.findAllUser();
             //session
             HttpSession session=request.getSession();
             session.setAttribute("userList",allUser);
