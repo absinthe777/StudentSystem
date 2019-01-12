@@ -34,9 +34,9 @@
                 layer.tips('验证码输入错误','#vcode');
                 return;
             }
+            var index=0;
             $.ajax({
                 url:"login.do",
-                method:"get",
                 data:$("#loginForm").serialize(),
                 beforeSend:function(){
                     index=layer.load(3,{
@@ -47,19 +47,18 @@
                     layer.close(index);
                 },
                 success:function (result) {
-                    // alert(result);
                     if(result=="true"){
                         sessionStorage.setItem("uname",uname);
                         sessionStorage.setItem("role",role);
                         window.location.href="main.html";
                     }
                     else {
-
                         layer.msg("登录失败");
                     }
                 },
                 error:function () {
-                    alert("失败");
+                    alert("访问服务器失败");
+                    layer.close(index);
                 }
             });
         }

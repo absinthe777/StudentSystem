@@ -12,44 +12,29 @@
     <script type="text/javascript" src="other/node_modules/bootbox/bootbox.js"></script>
     <script>
         function searchUserByRole() {
-            $.get("searchUserServlet",{"role":$("#searchByRole").val()},function (data) {
-                var obj= JSON.parse(data);
-                var str="";
-                $.each(obj,function (index,row,ee) {
-                    // alert(row.uname+"-"+row.upwd);
-                    str+="<tr align='center'><td><input type='checkbox' value='+row.id'></td><td>"+row.uname+"</td><td>"
-                        +row.lastLoginTime+"</td><td>"+row.role+"</td><td>"+
-                        "<a href='javascript:deleteUserById(\""+row.id+"\")' title='删除' onclick='return confirm(\"是否真的删除?\")'><span class='glyphicon glyphicon-remove'></span></a>"+
-                        "<a href='javascript:showUpdateModal()'><span class='glyphicon glyphicon-refresh'></span> </a></td></tr>"
+            var select_role=$("#searchByRole").val();
+            $.ajax({
+                url:"searchUserByRole.do",
+                data:{"role":select_role},
+                success:function (result) {
+                     //alert("111");
+                    var obj= JSON.parse(result);
+                     var str="";
+                    $.each(obj,function (index,row,ee) {
+                        str+="<tr align='center'><td><input type='checkbox' id='"+index+"' value='"+row.id+"'></td><td>"+row.uname+"</td><td>"+row.runame+"</td><td>"
+                            +new Date(row.lastLoginTime).toLocaleString()+"</td><td>"+row.role+"</td><td>"+
+                            "<a href='javascript:deleteUserById(\""+row.id+"\")' title='删除'><span class='glyphicon glyphicon-remove'></span></a>"+
+                            "<a href='javascript:showUserInfoModal(0,"+JSON.stringify(row)+")'><span class='glyphicon glyphicon-refresh'></span> </a></td></tr>"
+                        //sessionStorage.setItem("id",$("#name").val());
 
-                });
-                $("#alluser").html(str);
-            });
-        }
-        function optionUserInfo() {
-            var btn_value= $("#btnModal").html();
-            if(btn_value=="添加"){
-                $.post("addUserInfo.do",{"uname":$("#uname").val(),"runame":$("#runame").val(),"role":$("#role").val()},function (data) {
-                    if (data=="true"){
-                        layer.msg("成功");
-                         // alert("add success");
-                        $("#addModal").modal("hide");
-                        findAllUser();
-                    }else {
-                        layer.msg("添加失败");
-                    }
-                });
-            }else {
-                $.post("User",{"uname":$("#uname").val(),"runame":$("#runame").val(),"role":$("#role").val()},function (data) {
-                    if (data=="true"){
-                        layer.msg("成功");
-                        $("#addModal").modal("hide");
-                        findAllUser();
-                    }else {
-                        layer.msg("添加失败");
-                    }
-                });
-            }
+                    });
+                    $("#alluser").html(str);
+                },
+                error:function () {
+                    alert("请求服务器失败");
+                }
+            })
+            
         }
         function showUserInfoModal(id,data) {
             if (id==0)
@@ -59,6 +44,7 @@
                 $("#uname").val(data.uname);
                 $("#runame").val(data.runame);
                 $("#role").val(data.role);
+                sessionStorage.setItem("id",data.id);
             }
             else
             {
@@ -68,7 +54,42 @@
                 $("#runame").val("");
                 $("#role").val("");
             }
-            $("#addModal").modal("show");
+            $("#optionModal").modal("show");
+        }
+        function optionUserInfo() {
+            if($("#btnModal").html()=="添加"){
+                $.ajax({
+                    url:"addUserInfo.do",
+                    data:{"uname":$("#uname").val(),"runame":$("#runame").val(),"role":$("#role").val()},
+                    success:function (result) {
+                        if (result=="true") {
+                            layer.msg("添加成功");
+                            $("#optionModal").modal("hide");
+                            findAllUser();}
+                        else
+                            layer.msg("添加失败");
+                    },
+                    error:function () {
+                        layer.msg("访问服务器失败");
+                    }
+                });
+            }else {
+                $.ajax({
+                    url:"updateUserInfo.do",
+                    data:{"uname":$("#uname").val(),"runame":$("#runame").val(),"role":$("#role").val(),"id":sessionStorage.getItem("id")},
+                    success:function (data) {
+                        if (data=="true") {
+                            layer.msg("修改成功"+data);
+                            $("#optionModal").modal("hide");
+                            findAllUser();}
+                        else
+                            layer.msg("修改失败");
+                    },
+                    error:function () {
+                        layer.msg("访问服务器失败");
+                    }
+                });
+            }
         }
         function deleteUserById(id) {
             console.info(id);
@@ -117,7 +138,7 @@
                         str+="<tr align='center'><td><input type='checkbox' value='"+row.id+"'></td><td>"+row.uname+"</td><td>"+row.runame+"</td><td>"
                             +new Date(row.lastLoginTime).toLocaleString()+"</td><td>"+row.role+"</td><td>"+
                             "<a href='javascript:deleteUserById(\""+row.id+"\")' title='删除'><span class='glyphicon glyphicon-remove'></span></a>"+
-                            "<a href='javascript:showUserInfoModal(0,"+JSON.stringify(row)+")'><span class='glyphicon glyphicon-refresh'></span> </a></td></tr>"
+                            "<a href='javascript:showUserInfoModal(0,"+JSON.stringify(row)+","+row.id+" )'><span class='glyphicon glyphicon-refresh'></span> </a></td></tr>"
 
                     });
                     $("#alluser").html(str);
@@ -136,7 +157,7 @@
 <div class="well">
     <div class="form-inline">
         <a href="javascript:showUserInfoModal(1)" class="btn btn-danger"><span class="glyphicon glyphicon-zoom-in"></span> 添加</a>
-        <select id="searchByRole" class="form-control" onchange="javascript:searchUserByRole()">
+        <select id="searchByRole" name="searchByRole" class="form-control" onchange="javascript:searchUserByRole()">
             <option value="">全部</option>
             <option value="admin">管理员</option>
             <option value="teacher">教师</option>
@@ -156,7 +177,7 @@
     <tbody id="alluser"></tbody>
 </table>
 <!-- 模态框（Modal）-->
-<div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+<div class="modal fade" id="optionModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
